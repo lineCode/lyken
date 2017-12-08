@@ -48,6 +48,7 @@ enum_primitive = "0.1.1"
 error-chain = "0.10.0"
 git2 = "0.6.8"
 lyken-gll = { path = "gll" }
+lyken-vsdg = { path = "vsdg" }
 mktemp = "0.3.1"
 unicode-width = "0.1.4"
 unicode-xid = "0.1.0"
