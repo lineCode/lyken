@@ -6,6 +6,10 @@ name = "lyken-vsdg"
 repository = "https://github.com/lykenware/lyken"
 version = "0.1.0"
 
+[dependencies]
+cretonne-codegen = "0.5.1"
+cretonne-wasm = "0.5.1"
+
 [lib]
 doctest = false
 test = false

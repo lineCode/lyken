@@ -1,7 +1,9 @@
-use std::hash::Hash;
-use std::collections::HashMap;
-use std::cell::{Cell, Ref, RefCell};
 use core::nonzero::NonZero;
+use std::cell::{Cell, Ref, RefCell};
+use std::collections::HashMap;
+use std::fmt;
+use std::hash::Hash;
+use std::mem;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 struct NodeId(NonZero<u32>);
@@ -102,15 +104,20 @@ impl<K> Graph<K> {
     }
 
     fn node_data(&self, id: NodeId) -> Ref<NodeData> {
-        Ref::map(self.nodes.borrow(), |nodes| &nodes[id.index()])
+        Ref::map(self.nodes.borrow(), |nodes| {
+            &nodes[id.index()]
+        })
     }
 
     fn port_data(&self, id: PortId) -> Ref<PortData> {
-        Ref::map(self.node_data(id.node), |data| &data.ports[id.port_index()])
+        Ref::map(self.node_data(id.node), |data| {
+            &data.ports[id.port_index()]
+        })
     }
 
     fn maybe_release_node(&self, id: NodeId) {
-        if self.node_data(id).ref_count.get() == 0 {
+        // HACK keep all nodes alive.
+        if self.node_data(id).ref_count.get() == 0 && false {
             // FIXME: do this without borrow_mut.
             let mut nodes = self.nodes.borrow_mut();
             let data = &mut nodes[id.index()];
@@ -170,6 +177,16 @@ impl<'g, K> Node<'g, K> {
     }
 }
 
+impl<'g, K: fmt::Debug> fmt::Debug for Node<'g, K> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{:?}",
+            self.graph.kinds.borrow()[self.data().kind as usize]
+        )
+    }
+}
+
 impl<'g, K> Clone for Node<'g, K> {
     fn clone(&self) -> Self {
         self.graph.node_handle(self.id)
@@ -178,8 +195,10 @@ impl<'g, K> Clone for Node<'g, K> {
 
 impl<'g, K> Drop for Node<'g, K> {
     fn drop(&mut self) {
-        let data = self.data();
-        data.ref_count.set(data.ref_count.get() - 1);
+        {
+            let data = self.data();
+            data.ref_count.set(data.ref_count.get() - 1);
+        }
         self.graph.maybe_release_node(self.id);
     }
 }
@@ -255,6 +274,7 @@ impl<'g, K> DoubleEndedIterator for Edges<'g, K> {
     }
 }
 
+#[derive(Clone)]
 pub struct Input<'g, K: 'g>(Port<'g, K>);
 
 impl<'g, K> Input<'g, K> {
@@ -298,9 +318,12 @@ impl<'g, K> Input<'g, K> {
                 last: self.0.id(),
             }));
         }
+        // HACK keep the source alive.
+        mem::forget(source);
     }
 }
 
+#[derive(Clone)]
 pub struct Output<'g, K: 'g>(Port<'g, K>);
 
 impl<'g, K> Output<'g, K> {
