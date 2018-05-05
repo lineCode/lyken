@@ -1,13 +1,13 @@
-use core::nonzero::NonZero;
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
 use std::io::{self, Write};
 use std::mem;
+use std::num::NonZeroU32;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
-struct NodeId(NonZero<u32>);
+struct NodeId(NonZeroU32);
 
 impl NodeId {
     fn index(self) -> usize {
@@ -103,7 +103,7 @@ impl<K> Graph<K> {
                 kind: kind as u32,
                 ref_count: Cell::new(0),
             });
-            NodeId(NonZero::new(nodes.len() as u32 - 1).unwrap())
+            NodeId(NonZeroU32::new(nodes.len() as u32 - 1).unwrap())
         };
         self.node_handle(id)
     }
@@ -114,7 +114,7 @@ impl<K> Graph<K> {
     {
         writeln!(out, "digraph vsdg {{")?;
         for id in 1..self.nodes.borrow().len() {
-            let node = self.node_handle(NodeId(NonZero::new(id as u32).unwrap()));
+            let node = self.node_handle(NodeId(NonZeroU32::new(id as u32).unwrap()));
             writeln!(out, r#"    {} [label="{:?}"]"#, node.id.index(), node)?;
             let sig = node.kind().sig();
             for i in 0..sig.val_ins {
